@@ -95,4 +95,16 @@ class TransformerEncoderModel(nn.Module):
         for block in self.blocks:
             x = block(x, key_padding_mask)
         x = self.final_norm(x)
-        return masked_mean(x, attention_mask)               
+        return masked_mean(x, attention_mask)         
+
+class BagOfEmbeddings(nn.Module):
+    def __init__(self, vocab_size, d_model=256, pad_id=0, dropout=0.1):
+        super().__init__()
+        self.pad_id = pad_id
+        self.d_model = d_model
+        self.embed = nn.Embedding(vocab_size, d_model, padding_idx=pad_id)
+        self.dropout = nn.Dropout(dropout)
+ 
+    def forward(self, input_ids, attention_mask):
+        x = self.dropout(self.embed(input_ids))
+        return masked_mean(x, attention_mask)
