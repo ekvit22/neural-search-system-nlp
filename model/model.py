@@ -52,3 +52,47 @@ class MultiHeadSelfAttention(nn.Module):
         ctx = attention @ v                                                
         ctx = ctx.transpose(1, 2).contiguous().view(B, L, d)          
         return self.out_proj(ctx)
+
+class TransformerBlock(nn.Module): 
+    def __init__(self, d_model, nhead, dim_feedforward, dropout=0.1):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(d_model)
+        self.attn = MultiHeadSelfAttention(d_model, nhead, dropout)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.ff = nn.Sequential(
+            nn.Linear(d_model, dim_feedforward),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_feedforward, d_model),
+        )
+        self.dropout = nn.Dropout(dropout)
+ 
+    def forward(self, x, key_padding_mask):
+        x = x + self.dropout(self.attn(self.norm1(x), key_padding_mask))
+        x = x + self.dropout(self.ff(self.norm2(x)))
+        return x
+ 
+ 
+class TransformerEncoderModel(nn.Module):
+    def __init__(self, vocab_size, d_model=256, nhead=4, num_layers=4,
+                 dim_feedforward=512, max_len=512, dropout=0.1, pad_id=0):
+        super().__init__()
+        self.pad_id = pad_id
+        self.d_model = d_model
+        self.embed = nn.Embedding(vocab_size, d_model, padding_idx=pad_id)
+        self.pos = PositionalEncoding(d_model, max_len)
+        self.in_dropout = nn.Dropout(dropout)
+        self.blocks = nn.ModuleList([
+            TransformerBlock(d_model, nhead, dim_feedforward, dropout)
+            for _ in range(num_layers)
+        ])
+        self.final_norm = nn.LayerNorm(d_model)
+ 
+    def forward(self, input_ids, attention_mask):
+        x = self.embed(input_ids) * math.sqrt(self.d_model)
+        x = self.in_dropout(self.pos(x))
+        key_padding_mask = attention_mask == 0              
+        for block in self.blocks:
+            x = block(x, key_padding_mask)
+        x = self.final_norm(x)
+        return masked_mean(x, attention_mask)               
