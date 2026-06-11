@@ -3,7 +3,7 @@ import random
 from typing import Dict, List
 
 import config
-from chunk_book import split_sentences
+from data.chunk_book import split_sentences
 
 
 def ict_pairs(chunk: str, n_per_chunk: int) -> List[List[str]]:

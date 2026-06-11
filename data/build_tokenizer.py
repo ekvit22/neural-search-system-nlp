@@ -28,4 +28,3 @@ def load_tokenizer(path: str = config.TOKENIZER_PATH) -> Tuple[Callable[[str], L
 
 def main() -> None:
     train_tokenizer([config.BOOK_PATH])
-

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import config
-from build_tokenizer import load_tokenizer
+from data.build_tokenizer import load_tokenizer
 from data import TextDataset, text_collate
 from model.model import TransformerEncoderModel
 

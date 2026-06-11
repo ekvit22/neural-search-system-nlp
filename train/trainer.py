@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import config
-from build_tokenizer import load_tokenizer
+from data.build_tokenizer import load_tokenizer
 from data import PairDataset, pair_collate
 from model.contrastive_learning import info_nce
 from model.model import TransformerEncoderModel
