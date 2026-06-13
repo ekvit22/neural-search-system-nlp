@@ -22,6 +22,25 @@ class PairDataset(Dataset):
         return self.tokenize(query)[: self.max_length], self.tokenize(passage)[: self.max_length]
 
 
+class TripletDataset(Dataset):
+
+    def __init__(self, triplets, tokenize: Callable[[str], List[int]], max_length: int = config.MAX_LEN) -> None:
+        self.triplets = triplets
+        self.tokenize = tokenize
+        self.max_length = max_length
+
+    def __len__(self) -> int:
+        return len(self.triplets)
+
+    def __getitem__(self, index: int) -> Tuple[List[int], List[int], List[int]]:
+        query, positive, negative = self.triplets[index]
+        return (
+            self.tokenize(query)[: self.max_length],
+            self.tokenize(positive)[: self.max_length],
+            self.tokenize(negative)[: self.max_length],
+        )
+
+
 class TextDataset(Dataset):
 
     def __init__(self, texts, tokenize: Callable[[str], List[int]], max_length: int = config.MAX_LEN) -> None:
@@ -50,6 +69,11 @@ def pad_batch(sequences: List[List[int]], pad_id: int = 0) -> Tuple[Tensor, Tens
 def pair_collate(batch, pad_id: int = 0) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]:
     queries, passages = zip(*batch)
     return pad_batch(queries, pad_id), pad_batch(passages, pad_id)
+
+
+def triplet_collate(batch, pad_id: int = 0):
+    queries, positives, negatives = zip(*batch)
+    return pad_batch(queries, pad_id), pad_batch(positives, pad_id), pad_batch(negatives, pad_id)
 
 
 def text_collate(batch, pad_id: int = 0) -> Tuple[Tensor, Tensor]:
