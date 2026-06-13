@@ -1,7 +1,7 @@
-# neural-search-system-nlp
+# Neural Search System
 
 A neural semantic search system. A Transformer encoder, trained from scratch, maps queries and
-passages into a shared embedding space; retrieval is nearest-neighbour by cosine similarity. The
+passages into a shared embedding space. Retrieval is nearest-neighbour by cosine similarity. The
 encoder is trained contrastively on MS MARCO (v2.1) query–passage triplets.
 
 The idea: keyword search only matches exact words. Here, text is encoded into a fixed-size vector
@@ -42,29 +42,29 @@ positives + hard negatives), so larger batches mean more negatives and a stronge
 ## Training experiments
 
 The encoder was trained from scratch in **two runs**. The aim was not to chase the lowest possible
-number but to *understand the training dynamics and justify each choice*: train a baseline, read
+number but to understand the training dynamics and justify each choice: train a baseline, read
 its loss curve to diagnose what is limiting it, form a hypothesis, change the smallest set of
-variables that tests that hypothesis, and re-measure. Run 1 establishes a baseline and diagnoses
+variables that tests that hypothesis and re-measure. Run 1 establishes a baseline and diagnoses
 the bottleneck; Run 2 acts on that diagnosis.
 
-**How to read the metric.** Validation loss is the contrastive cross-entropy of `triplet_nce`:
+**How to read the metric:** Validation loss is the contrastive cross-entropy of `triplet_nce`:
 each query is scored against `2 × batch_size` candidates (the batch's positives + one hard
 negative per example) and must identify its own positive. Two consequences matter for
 interpretation:
 
-- A **random** model scores `ln(2·batch_size)` (e.g. `ln(128) ≈ 4.85` at batch 64). So the loss
+- A random model scores `ln(2·batch_size)` (e.g. `ln(128) ≈ 4.85` at batch 64). So the loss
   is only meaningful relative to that baseline, and `e^(−loss)` is roughly the probability mass
   the model puts on the correct passage — an interpretable "how often is it right" proxy.
-- It is an **optimistic** proxy. It measures picking 1-of-`2B` *within a batch*, whereas real
+- It is an **optimistic** proxy. It measures picking 1-of-`2B` within a batch, whereas real
   retrieval picks 1 out of the entire corpus (hundreds of thousands of passages). So a good val
   loss is necessary but not sufficient; the honest verdict needs Recall@K / MRR over the full
   corpus (the evaluation stage), not this number alone.
 
 ### Run 1 — baseline
 
-**What I was doing and why.** A deliberately conservative first pass to get a working, converging
+A deliberately conservative first pass to get a working, converging
 training loop and a reference point. Settings were standard contrastive-learning defaults so that
-nothing exotic could be blamed later: a *small* 50k-example slice of MS MARCO for fast iteration,
+nothing exotic could be blamed later: a small 50k-example slice of MS MARCO for fast iteration,
 batch 64, `lr 1e-4` with AdamW + warmup + cosine decay, temperature `0.05` (the usual InfoNCE
 value), and `max_len 128` (MS MARCO passages are short, ~56 words, so little is truncated).
 
@@ -84,8 +84,8 @@ value), and `max_len 128` (MS MARCO passages are short, ~56 words, so little is 
 |----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|--------|
 | val_loss | 2.481 | 2.188 | 2.072 | 2.007 | 1.966 | 1.944 | 1.930 | 1.924 | 1.922 | 1.9217 |
 
-**Analysis.** Training converged cleanly — smooth, monotonic, no val-loss bounce, so no
-overfitting; the loop and loss are working correctly. The model learned a *real* signal: final
+Training converged cleanly — smooth, monotonic, no val-loss bounce, so no
+overfitting; the loop and loss are working correctly. The model learned a*real signal: final
 loss 1.92 against the random baseline of 4.85 means it places ~`e^(-1.92) ≈ 15%` of its
 probability mass on the correct passage among 128 candidates, ~18× better than the 0.8% of pure
 chance. **But the improvements died early** — the curve is essentially flat from epoch 8 (epoch
@@ -97,20 +97,20 @@ negatives, and contrastive learning gets its signal from the number and difficul
 
 ### Run 2 — acting on the diagnosis
 
-**Hypothesis.** If Run 1 is limited by data quantity and by too few negatives, then increasing
+**Hypothesis:** If Run 1 is limited by data quantity and by too few negatives, then increasing
 both should lower the loss and, more importantly, produce better embeddings. The changes:
 
-- **4× more data** (50k → 200k MS MARCO examples → 97,884 triples) — directly addresses the
+- **4× more data** (50k → 200k MS MARCO examples → 97,884 triples) - directly addresses the
   data-starvation bottleneck; this was expected to be the dominant lever.
-- **Batch 64 → 128** — doubles in-batch negatives (127 → 255), the main driver of contrastive
+- **Batch 64 → 128** - doubles in-batch negatives (127 → 255), the main driver of contrastive
   signal.
-- **LR 1e-4 → 2e-4** — scaled with batch size (the standard linear-scaling heuristic: a 2× batch
+- **LR 1e-4 → 2e-4** - scaled with batch size (the standard linear-scaling heuristic: a 2× batch
   averages over more examples, so a larger step is warranted).
-- **Epochs 10 → 15** — a bigger batch means fewer gradient steps per epoch, so epochs were raised
-  to keep the *total update count* comparable and avoid confounding "more data" with "fewer
+- **Epochs 10 → 15** - a bigger batch means fewer gradient steps per epoch, so epochs were raised
+  to keep the total update count comparable and avoid confounding "more data" with "fewer
   updates".
 
-*Honest caveat:* this changes four things at once, so it is not a clean single-variable ablation —
+This changes four things at once, so it is not a clean single-variable ablation —
 the gain can't be attributed to one factor in isolation. Given Run 1's diagnosis (data was the
 clearest deficit) the data increase is the most likely dominant cause, but this is a reasoned
 attribution, not a proven one.
@@ -137,7 +137,7 @@ attribution, not a proven one.
 | P(correct) = `e^(−loss)`     | ~14.6% | **~23.0%** |
 | Final train_loss             | —      | 1.18       |
 
-**Analysis.** The hypothesis held, and the improvement is *larger than the raw numbers suggest*.
+The hypothesis held, and the improvement is *larger than the raw numbers suggest*.
 Run 2 reached **1.4652 vs Run 1's 1.9217 — but on a harder objective**: doubling the batch raises
 the in-batch candidate count from 128 to 256, so the model is discriminating among twice as many
 passages and *still* scores lower. Normalising for that, the probability mass on the correct
@@ -149,28 +149,28 @@ embeddings.
 
 ### Final assessment
 
-- **The intervention worked.** Iterating from a diagnosed bottleneck to a targeted fix improved
+- **The intervention worked:** Iterating from a diagnosed bottleneck to a targeted fix improved
   the model on every comparable measure, and by a clear margin (≈24% lower loss under a harder
   objective; ~15% → ~23% top-passage probability). This is the central result.
-- **The model is now capacity-bound, not data-bound.** Run 2 plateaued exactly as Run 1 did
+- **The model is now capacity-bound, not data-bound:** Run 2 plateaued exactly as Run 1 did
   (flat from ~epoch 12). Having removed the data bottleneck, the new ceiling is the architecture
   itself — a 4-layer, `d_model=256` encoder. Within this architecture, more data or epochs would
   yield diminishing returns; the next lever would be **model capacity** (deeper / wider) or
   harder-negative mining. This is left as future work rather than pursued, because the project's
   goal is understanding and justified iteration, not squeezing the last decimal of loss.
-- **Why I stopped at Run 2.** Three reasons agree: the run had converged (no value in more
+- **2 Runs were enough**, because the run had converged (no value in more
   epochs), the diagnosis showed the remaining gap is architectural (out of scope for a tuning
-  change), and the most valuable remaining work is evaluation, not further training.
-- **The honest limit of this verdict.** Everything above is measured in *validation loss*, an
+  change) and the most valuable remaining work is evaluation, not further training.
+- **The honest limit of this verdict:** Everything above is measured in validation loss, an
   in-batch proxy. It establishes that training is healthy and that Run 2's embeddings are better
   than Run 1's, but it does **not** establish real-world retrieval quality. The definitive
-  judgement — does the encoder beat TF-IDF / BM25 on Recall@K and MRR over the full corpus —
+  judgement: does the encoder beat TF-IDF / BM25 on Recall@K and MRR over the full corpus,
   belongs to the evaluation stage, and that comparison is where the model's usefulness is actually
   decided. `best_model.pt` (Run 2) is the model carried forward to that stage.
 
 ## Note on the corpus size
 
-Run 2 also grows the passage corpus (~488k → ~1.9M passages). Absolute Recall@K drops for *any*
-retriever when the corpus grows, simply because there are more distractors — so retrieval numbers
-should always be compared against baselines (TF-IDF, BM25) evaluated on the *same* corpus, not
+Run 2 also grows the passage corpus (~488k → ~1.9M passages). Absolute Recall@K drops for any
+retriever when the corpus grows, simply because there are more distractors - so retrieval numbers
+should always be compared against baselines (TF-IDF, BM25) evaluated on the same corpus, not
 read as absolute scores.
