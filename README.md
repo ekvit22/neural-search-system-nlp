@@ -5,7 +5,7 @@ passages into a shared embedding space. Retrieval is nearest-neighbour by cosine
 encoder is trained contrastively on MS MARCO (v2.1) query–passage triplets.
 
 Team members:
-Elene Kvitsiani
-Giorgi Beridze
-Sopho Gurjishvili
-Mariam Kakhidze
+- Elene Kvitsiani
+- Giorgi Beridze
+- Sopho Gurjishvili
+- Mariam Kakhidze
